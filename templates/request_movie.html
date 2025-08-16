@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>🎬 Request Movie or Series</h1>
+    
+    <div class="request-info" style="background-color: #333; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+        <h3>How it works</h3>
+        <p>Submit a request for movies or TV series you'd like to see added to the library. The admin will review your request and consider adding it to the collection.</p>
+        <div style="margin-top: 15px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #4CAF50; font-size: 16px;">1️⃣</span>
+                <span>Submit your request</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #2196F3; font-size: 16px;">2️⃣</span>
+                <span>Admin reviews request</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #ff9800; font-size: 16px;">3️⃣</span>
+                <span>Content added to library</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #e50914; font-size: 16px;">4️⃣</span>
+                <span>Start watching!</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-container" style="max-width: 700px;">
+        <form method="POST" id="requestForm">
+            <!-- Content Type Selection -->
+            <div class="form-group">
+                <label style="font-weight: bold; margin-bottom: 15px; display: block;">What would you like to request?</label>
+                <div class="content-type-selector">
+                    <label class="content-type-option">
+                        <input type="radio" name="request_type" value="movie" checked onchange="toggleSeriesFields()">
+                        <span class="radio-custom"></span>
+                        <span class="option-text">🎬 Movie</span>
+                    </label>
+                    <label class="content-type-option">
+                        <input type="radio" name="request_type" value="series" onchange="toggleSeriesFields()">
+                        <span class="radio-custom"></span>
+                        <span class="option-text">📺 TV Series</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Title -->
+            <div class="form-group">
+                <label for="title" id="titleLabel">Title:</label>
+                <input type="text" id="title" name="title" required placeholder="Enter the title">
+            </div>
+
+            <!-- Series-specific fields (hidden by default) -->
+            <div id="seriesFields" style="display: none;">
+                <div class="series-section">
+                    <h3 style="color: #4CAF50; margin: 20px 0 15px 0;">📺 Series Information</h3>
+                    
+                    <div class="form-group">
+                        <label for="series_name">Series Name:</label>
+                        <input type="text" id="series_name" name="series_name" placeholder="e.g., Breaking Bad, The Office">
+                        <small style="color: #aaa;">The main name of the TV series</small>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 1; margin-right: 10px;">
+                            <label for="season_number">Season Number (Optional):</label>
+                            <input type="number" id="season_number" name="season_number" min="1" placeholder="e.g., 1">
+                        </div>
+                        <div class="form-group" style="flex: 1; margin-left: 10px;">
+                            <label for="episode_number">Episode Number (Optional):</label>
+                            <input type="number" id="episode_number" name="episode_number" min="1" placeholder="e.g., 5">
+                        </div>
+                    </div>
+                    
+                    <small style="color: #aaa; display: block; margin-top: -15px; margin-bottom: 15px;">
+                        Leave season/episode blank if requesting the entire series
+                    </small>
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div class="form-group">
+                <label for="description">Description (Optional):</label>
+                <textarea id="description" name="description" rows="4" placeholder="Brief description or why you'd like this added..."></textarea>
+            </div>
+            
+            <!-- Additional Details -->
+            <div class="form-row">
+                <div class="form-group" style="flex: 1; margin-right: 10px;">
+                    <label for="genre">Genre (Optional):</label>
+                    <input type="text" id="genre" name="genre" placeholder="e.g., Action, Comedy, Drama">
+                </div>
+                <div class="form-group" style="flex: 1; margin-left: 10px;">
+                    <label for="release_year">Release Year (Optional):</label>
+                    <input type="number" id="release_year" name="release_year" min="1900" max="2030" placeholder="e.g., 2023">
+                </div>
+            </div>
+            
+            <!-- IMDb Link -->
+            <div class="form-group">
+                <label for="imdb_link">IMDb Link (Optional):</label>
+                <input type="url" id="imdb_link" name="imdb_link" placeholder="https://www.imdb.com/title/...">
+                <small style="color: #aaa;">Helps the admin find the correct content</small>
+            </div>
+            
+            <!-- Additional Info -->
+            <div class="form-group">
+                <label for="additional_info">Additional Information (Optional):</label>
+                <textarea id="additional_info" name="additional_info" rows="3" placeholder="Any other details that might help (preferred quality, specific version, etc.)"></textarea>
+            </div>
+            
+            <div class="button-group">
+                <button type="submit" class="btn" id="submitBtn">🎬 Submit Movie Request</button>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary" style="margin-left: 10px;">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="request-controls" style="margin-top: 30px; text-align: center;">
+        <a href="{{ url_for('my_requests') }}" class="btn btn-secondary">📋 View My Requests</a>
+    </div>
+</div>
+
+<style>
+    .content-type-selector {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .content-type-option {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        padding: 15px 20px;
+        background-color: #333;
+        border-radius: 8px;
+        border: 2px solid #555;
+        transition: all 0.3s ease;
+        flex: 1;
+    }
+
+    .content-type-option:hover {
+        border-color: #e50914;
+        background-color: #444;
+    }
+
+    .content-type-option input[type="radio"] {
+        display: none;
+    }
+
+    .content-type-option input[type="radio"]:checked + .radio-custom {
+        background-color: #e50914;
+        border-color: #e50914;
+    }
+
+    .content-type-option input[type="radio"]:checked + .radio-custom::after {
+        opacity: 1;
+    }
+
+    .content-type-option input[type="radio"]:checked ~ .option-text {
+        color: #e50914;
+        font-weight: bold;
+    }
+
+    .radio-custom {
+        width: 20px;
+        height: 20px;
+        border: 2px solid #666;
+        border-radius: 50%;
+        margin-right: 10px;
+        position: relative;
+        transition: all 0.3s ease;
+    }
+
+    .radio-custom::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 8px;
+        height: 8px;
+        background-color: white;
+        border-radius: 50%;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .option-text {
+        font-size: 16px;
+        color: white;
+        transition: all 0.3s ease;
+    }
+
+    .series-section {
+        background-color: rgba(76, 175, 80, 0.1);
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid rgba(76, 175, 80, 0.3);
+        margin-bottom: 20px;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 20px;
+    }
+
+    .button-group {
+        margin-top: 30px;
+    }
+
+    #submitBtn {
+        min-width: 200px;
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .content-type-selector {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .form-row {
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .form-row .form-group {
+            margin: 0 0 20px 0 !important;
+        }
+    }
+
+    /* Form animations */
+    #seriesFields {
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .series-section {
+        animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Request info styling */
+    .request-info {
+        animation: fadeInUp 1s ease;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+<script>
+    function toggleSeriesFields() {
+        const requestType = document.querySelector('input[name="request_type"]:checked').value;
+        const seriesFields = document.getElementById('seriesFields');
+        const submitBtn = document.getElementById('submitBtn');
+        const titleLabel = document.getElementById('titleLabel');
+
+        if (requestType === 'series') {
+            seriesFields.style.display = 'block';
+            submitBtn.innerHTML = '📺 Submit Series Request';
+            titleLabel.textContent = 'Series or Episode Title:';
+        } else {
+            seriesFields.style.display = 'none';
+            submitBtn.innerHTML = '🎬 Submit Movie Request';
+            titleLabel.textContent = 'Movie Title:';
+        }
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleSeriesFields();
+        
+        // Check URL parameters for pre-selecting type
+        const urlParams = new URLSearchParams(window.location.search);
+        const requestType = urlParams.get('type');
+        
+        if (requestType === 'series') {
+            document.querySelector('input[value="series"]').checked = true;
+            toggleSeriesFields();
+        }
+    });
+
+    // Form validation
+    document.getElementById('requestForm').addEventListener('submit', function(e) {
+        const title = document.getElementById('title').value.trim();
+        
+        if (!title) {
+            e.preventDefault();
+            alert('Please enter a title for your request.');
+            return false;
+        }
+        
+        // Show submission feedback
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.innerHTML = '⏳ Submitting...';
+        submitBtn.disabled = true;
+    });
+</script>
+{% endblock %}

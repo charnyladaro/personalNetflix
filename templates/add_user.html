@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="form-container" style="max-width: 500px;">
+        <h2>➕ Add New User</h2>
+        
+        <div class="info-box" style="background-color: #333; padding: 15px; border-radius: 8px; margin-bottom: 25px; border-left: 4px solid #2196F3;">
+            <h4 style="color: #2196F3; margin-bottom: 10px;">ℹ️ User Creation Guidelines</h4>
+            <ul style="color: #ccc; margin: 0; padding-left: 20px;">
+                <li>Username must be at least 3 characters long</li>
+                <li>Password must be at least 6 characters long</li>
+                <li>Admin users have full system access</li>
+                <li>Regular users can only request content and view movies</li>
+            </ul>
+        </div>
+        
+        <form method="POST" id="addUserForm">
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password:</label>
+                <input type="password" id="confirm_password" name="confirm_password" required minlength="6" placeholder="Confirm password">
+                <small style="color: #aaa;">Must match the password above</small>
+            </div>
+            
+            <div class="form-group checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="is_admin" name="is_admin">
+                    <span class="checkmark"></span>
+                    <span class="checkbox-text">
+                        🛡️ Make this user an administrator
+                        <small style="display: block; color: #aaa; margin-top: 5px;">
+                            Admins can manage content, users, and system settings
+                        </small>
+                    </span>
+                </label>
+            </div>
+            
+            <div class="button-group">
+                <button type="submit" class="btn" id="submitBtn">➕ Create User</button>
+                <a href="{{ url_for('admin_users') }}" class="btn btn-secondary" style="margin-left: 10px;">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .checkbox-group {
+        margin: 25px 0;
+    }
+
+    .checkbox-label {
+        display: flex;
+        align-items: flex-start;
+        cursor: pointer;
+        padding: 15px;
+        background-color: #333;
+        border-radius: 8px;
+        border: 2px solid #555;
+        transition: all 0.3s ease;
+    }
+
+    .checkbox-label:hover {
+        border-color: #e50914;
+        background-color: #3a3a3a;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+        display: none;
+    }
+
+    .checkmark {
+        width: 20px;
+        height: 20px;
+        border: 2px solid #666;
+        border-radius: 4px;
+        margin-right: 12px;
+        position: relative;
+        transition: all 0.3s ease;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+
+    .checkbox-label input[type="checkbox"]:checked + .checkmark {
+        background-color: #e50914;
+        border-color: #e50914;
+    }
+
+    .checkbox-label input[type="checkbox"]:checked + .checkmark::after {
+        content: '✓';
+        position: absolute;
+        top: -2px;
+        left: 3px;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    .checkbox-text {
+        color: white;
+        font-weight: bold;
+        line-height: 1.4;
+    }
+
+    .info-box {
+        animation: fadeInUp 0.5s ease;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group input {
+        transition: all 0.3s ease;
+    }
+
+    .form-group input:focus {
+        border-color: #e50914;
+        box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.1);
+    }
+
+    .button-group {
+        margin-top: 30px;
+    }
+
+    #submitBtn {
+        min-width: 150px;
+    }
+
+    /* Password strength indicator */
+    .password-strength {
+        margin-top: 5px;
+        height: 4px;
+        background-color: #444;
+        border-radius: 2px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .password-strength-bar {
+        height: 100%;
+        transition: all 0.3s ease;
+        border-radius: 2px;
+    }
+
+    .strength-weak { background-color: #f44336; width: 25%; }
+    .strength-fair { background-color: #ff9800; width: 50%; }
+    .strength-good { background-color: #4CAF50; width: 75%; }
+    .strength-strong { background-color: #2196F3; width: 100%; }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .button-group .btn {
+            margin: 0 !important;
+            text-align: center;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('addUserForm');
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordInput = document.getElementById('confirm_password');
+        const submitBtn = document.getElementById('submitBtn');
+        
+        // Add password strength indicator
+        const strengthIndicator = document.createElement('div');
+        strengthIndicator.className = 'password-strength';
+        strengthIndicator.innerHTML = '<div class="password-strength-bar"></div>';
+        passwordInput.parentNode.appendChild(strengthIndicator);
+        
+        const strengthText = document.createElement('small');
+        strengthText.style.cssText = 'color: #aaa; display: block; margin-top: 5px;';
+        strengthIndicator.parentNode.appendChild(strengthText);
+        
+        // Password strength checker
+        passwordInput.addEventListener('input', function() {
+            const password = this.value;
+            const strengthBar = strengthIndicator.querySelector('.password-strength-bar');
+            
+            let strength = 0;
+            let strengthLabel = '';
+            
+            if (password.length >= 6) strength++;
+            if (password.match(/[a-z]/)) strength++;
+            if (password.match(/[A-Z]/)) strength++;
+            if (password.match(/[0-9]/)) strength++;
+            if (password.match(/[^a-zA-Z0-9]/)) strength++;
+            
+            strengthBar.className = 'password-strength-bar';
+            
+            if (strength <= 1) {
+                strengthBar.classList.add('strength-weak');
+                strengthLabel = 'Weak password';
+            } else if (strength <= 2) {
+                strengthBar.classList.add('strength-fair');
+                strengthLabel = 'Fair password';
+            } else if (strength <= 3) {
+                strengthBar.classList.add('strength-good');
+                strengthLabel = 'Good password';
+            } else {
+                strengthBar.classList.add('strength-strong');
+                strengthLabel = 'Strong password';
+            }
+            
+            strengthText.textContent = password.length > 0 ? strengthLabel : '';
+        });
+        
+        // Password confirmation checker
+        function checkPasswordMatch() {
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            
+            if (confirmPassword.length > 0) {
+                if (password === confirmPassword) {
+                    confirmPasswordInput.style.borderColor = '#4CAF50';
+                    confirmPasswordInput.style.boxShadow = '0 0 0 3px rgba(76, 175, 80, 0.1)';
+                } else {
+                    confirmPasswordInput.style.borderColor = '#f44336';
+                    confirmPasswordInput.style.boxShadow = '0 0 0 3px rgba(244, 67, 54, 0.1)';
+                }
+            } else {
+                confirmPasswordInput.style.borderColor = '#555';
+                confirmPasswordInput.style.boxShadow = 'none';
+            }
+        }
+        
+        passwordInput.addEventListener('input', checkPasswordMatch);
+        confirmPasswordInput.addEventListener('input', checkPasswordMatch);
+        
+        // Form validation
+        form.addEventListener('submit', function(e) {
+            const username = document.getElementById('username').value.trim();
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            
+            if (username.length < 3) {
+                e.preventDefault();
+                alert('Username must be at least 3 characters long.');
+                document.getElementById('username').focus();
+                return false;
+            }
+            
+            if (password.length < 6) {
+                e.preventDefault();
+                alert('Password must be at least 6 characters long.');
+                passwordInput.focus();
+                return false;
+            }
+            
+            if (password !== confirmPassword) {
+                e.preventDefault();
+                alert('Passwords do not match. Please check and try again.');
+                confirmPasswordInput.focus();
+                return false;
+            }
+            
+            // Show loading state
+            submitBtn.innerHTML = '⏳ Creating User...';
+            submitBtn.disabled = true;
+        });
+        
+        // Username availability checker (simulated)
+        const usernameInput = document.getElementById('username');
+        let usernameTimeout;
+        
+        usernameInput.addEventListener('input', function() {
+            clearTimeout(usernameTimeout);
+            const username = this.value.trim();
+            
+            if (username.length >= 3) {
+                usernameTimeout = setTimeout(() => {
+                    // Simulate checking username availability
+                    // In a real implementation, you'd make an AJAX call here
+                    this.style.borderColor = '#4CAF50';
+                    this.style.boxShadow = '0 0 0 3px rgba(76, 175, 80, 0.1)';
+                }, 500);
+            }
+        });
+        
+        // Add admin warning
+        const adminCheckbox = document.getElementById('is_admin');
+        adminCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                const confirmed = confirm(
+                    '⚠️ ADMIN PRIVILEGES WARNING\n\n' +
+                    'You are about to grant administrator privileges to this user.\n\n' +
+                    'Administrators can:\n' +
+                    '• Upload and delete content\n' +
+                    '• Manage all users\n' +
+                    '• Access system settings\n' +
+                    '• View all logs and analytics\n\n' +
+                    'Are you sure you want to proceed?'
+                );
+                
+                if (!confirmed) {
+                    this.checked = false;
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}<label for="username">Username:</label>
+                <input type="text" id="username" name="username" required minlength="3" placeholder="Enter username">
+                <small style="color: #aaa;">This will be used to log into the system</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required minlength="6" placeholder="Enter password">
+                <small style="color: #aaa;">Minimum 6 characters</small>
+            </div>
+            
+            <div class="form-group">

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>Admin Access Logs</h1>
+    
+    <div class="admin-info" style="background-color: #333; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+        <h3>Security Information</h3>
+        <p><strong>Your Current IP:</strong> {{ current_ip }}</p>
+        <p><strong>Status:</strong> <span style="color: #4CAF50;">✓ Authorized</span></p>
+    </div>
+
+    <div class="admin-controls">
+        <a href="{{ url_for('admin') }}" class="btn btn-secondary">Back to Admin Panel</a>
+        <a href="{{ url_for('ip_whitelist') }}" class="btn btn-secondary" style="margin-left: 10px;">Manage IP Whitelist</a>
+    </div>
+
+    <h2>Recent Admin Activity</h2>
+    {% if logs %}
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>User</th>
+                <th>IP Address</th>
+                <th>Action</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr {% if not log[5] %}style="background-color: #d32f2f20;"{% endif %}>
+                <td>{{ log[3][:19] if log[3] else 'N/A' }}</td>
+                <td>{{ log[6] if log[6] else 'Unknown' }}</td>
+                <td>
+                    {{ log[2] or 'N/A' }}
+                    {% if log[2] == current_ip %}
+                    <span style="color: #4CAF50; font-size: 12px; margin-left: 5px;">(Current)</span>
+                    {% endif %}
+                </td>
+                <td>{{ log[4] or 'N/A' }}</td>
+                <td>
+                    {% if log[5] %}
+                    <span style="color: #4CAF50;">✓ Success</span>
+                    {% else %}
+                    <span style="color: #f44336;">✗ Blocked</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No admin activity logs found.</p>
+    {% endif %}
+</div>
+{% endblock %}

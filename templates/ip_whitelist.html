@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>IP Whitelist Management</h1>
+    
+    <div class="admin-info" style="background-color: #333; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+        <h3>Current Information</h3>
+        <p><strong>Your Current IP:</strong> <span style="color: #4CAF50;">{{ current_ip }}</span></p>
+        <p><strong>Status:</strong> 
+            {% set current_ip_found = false %}
+            {% for ip in whitelist %}
+                {% if ip|length > 1 and ip[1] == current_ip and ip|length > 5 and ip[5] %}
+                    <span style="color: #4CAF50;">✓ Authorized</span>
+                    {% set current_ip_found = true %}
+                {% endif %}
+            {% endfor %}
+            {% if not current_ip_found %}
+                <span style="color: #f44336;">✗ Not in whitelist</span>
+            {% endif %}
+        </p>
+    </div>
+
+    <div class="admin-controls" style="margin-bottom: 30px;">
+        <a href="{{ url_for('admin') }}" class="btn btn-secondary">Back to Admin Panel</a>
+        <a href="{{ url_for('admin_logs') }}" class="btn btn-secondary" style="margin-left: 10px;">View Access Logs</a>
+    </div>
+
+    <!-- Add New IP Form -->
+    <div class="form-container" style="max-width: 600px; margin-bottom: 40px;">
+        <h3>Add New IP Address</h3>
+        <form method="POST" action="{{ url_for('add_ip_whitelist') }}">
+            <div class="form-group">
+                <label for="ip_address">IP Address:</label>
+                <input type="text" id="ip_address" name="ip_address" required placeholder="e.g., 192.168.1.100">
+            </div>
+            <div class="form-group">
+                <label for="description">Description:</label>
+                <input type="text" id="description" name="description" placeholder="e.g., Home Office, John's laptop">
+            </div>
+            <button type="submit" class="btn">Add IP Address</button>
+        </form>
+    </div>
+
+    <!-- Current Whitelist -->
+    <h2>Current Whitelist ({{ whitelist|length }} entries)</h2>
+    {% if whitelist %}
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>IP Address</th>
+                <th>Description</th>
+                <th>Added By</th>
+                <th>Added Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ip in whitelist %}
+            <tr {% if ip|length > 1 and ip[1] == current_ip %}style="background-color: #4CAF5020;"{% elif ip|length > 5 and not ip[5] %}style="background-color: #f4433620;"{% endif %}>
+                <td>
+                    <strong>{{ ip[1] if ip|length > 1 else 'N/A' }}</strong>
+                    {% if ip|length > 1 and ip[1] == current_ip %}
+                    <span style="color: #4CAF50; font-size: 12px; margin-left: 5px;">(Current)</span>
+                    {% endif %}
+                </td>
+                <td>{{ ip[2] if ip|length > 2 and ip[2] else 'No description' }}</td>
+                <td>{{ ip[6] if ip|length > 6 and ip[6] else 'System' }}</td>
+                <td>{{ ip[4][:10] if ip|length > 4 and ip[4] else 'N/A' }}</td>
+                <td>
+                    {% if ip|length > 5 and ip[5] %}
+                    <span style="color: #4CAF50;">Active</span>
+                    {% else %}
+                    <span style="color: #f44336;">Inactive</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <!-- Edit Button -->
+                    <button onclick="openEditModal({{ ip[0] if ip|length > 0 else 0 }}, '{{ ip[1] if ip|length > 1 else '' }}', '{{ ip[2] if ip|length > 2 and ip[2] else '' }}', {{ ip[5] if ip|length > 5 else 0 }})" 
+                            class="btn btn-secondary" style="margin-right: 5px; padding: 5px 10px;">Edit</button>
+                    
+                    <!-- Toggle Status -->
+                    {% if ip|length > 1 and ip[1] != current_ip %}
+                    <a href="{{ url_for('toggle_ip_whitelist', ip_id=ip[0] if ip|length > 0 else 0) }}" 
+                       class="btn" style="margin-right: 5px; padding: 5px 10px; background-color: {% if ip|length > 5 and ip[5] %}#ff9800{% else %}#4CAF50{% endif %};">
+                        {% if ip|length > 5 and ip[5] %}Deactivate{% else %}Activate{% endif %}
+                    </a>
+                    {% endif %}
+                    
+                    <!-- Delete Button -->
+                    {% if ip|length > 1 and ip[1] != current_ip %}
+                    <a href="{{ url_for('delete_ip_whitelist', ip_id=ip[0] if ip|length > 0 else 0) }}" 
+                       onclick="return confirm('Are you sure you want to delete IP {{ ip[1] if ip|length > 1 else 'this IP' }}?')"
+                       class="btn" style="background-color: #d32f2f; padding: 5px 10px;">Delete</a>
+                    {% else %}
+                    <span style="color: #666; font-size: 12px;">Cannot modify current IP</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No IP addresses in whitelist.</p>
+    {% endif %}
+</div>
+
+<!-- Edit Modal -->
+<div id="editModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+    <div style="background-color: #333; margin: 10% auto; padding: 20px; border-radius: 8px; width: 90%; max-width: 500px;">
+        <h3>Edit IP Address</h3>
+        <form id="editForm" method="POST">
+            <div class="form-group">
+                <label for="edit_ip_address">IP Address:</label>
+                <input type="text" id="edit_ip_address" name="ip_address" required>
+            </div>
+            <div class="form-group">
+                <label for="edit_description">Description:</label>
+                <input type="text" id="edit_description" name="description">
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="edit_is_active" name="is_active" value="1"> Active
+                </label>
+            </div>
+            <button type="submit" class="btn">Update</button>
+            <button type="button" onclick="closeEditModal()" class="btn btn-secondary" style="margin-left: 10px;">Cancel</button>
+        </form>
+    </div>
+</div>
+
+<script>
+function openEditModal(id, ipAddress, description, isActive) {
+    document.getElementById('editForm').action = '/admin/ip-whitelist/edit/' + id;
+    document.getElementById('edit_ip_address').value = ipAddress;
+    document.getElementById('edit_description').value = description;
+    document.getElementById('edit_is_active').checked = isActive == 1;
+    document.getElementById('editModal').style.display = 'block';
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    var modal = document.getElementById('editModal');
+    if (event.target == modal) {
+        closeEditModal();
+    }
+}
+</script>
+{% endblock %}

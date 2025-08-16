@@ -1,0 +1,952 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>Admin Panel</h1>
+    
+    <!-- Thumbnail Generation Status -->
+    <div class="thumbnail-status" style="background-color: #333; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+        <h3>🎬 Thumbnail Generation Status</h3>
+        {% if opencv_available %}
+        <div style="color: #4CAF50; margin-bottom: 10px;">
+            <strong>✓ OpenCV Available:</strong> High-quality video frame thumbnails enabled! 🚀
+        </div>
+        {% endif %}
+        {% if moviepy_available %}
+        <div style="color: #4CAF50; margin-bottom: 10px;">
+            <strong>✓ MoviePy Available:</strong> Advanced video processing thumbnails enabled! 🎞️
+        </div>
+        {% endif %}
+        {% if not opencv_available and not moviepy_available %}
+        <div style="color: #ff9800; margin-bottom: 10px;">
+            <strong>⚠ Limited Thumbnail Support:</strong> Only placeholder thumbnails available
+        </div>
+        <div style="font-size: 14px; color: #ccc;">
+            Install OpenCV or MoviePy for video frame extraction:<br>
+            <code style="background-color: #222; padding: 4px 8px; border-radius: 4px;">pip install opencv-python</code>
+            or
+            <code style="background-color: #222; padding: 4px 8px; border-radius: 4px;">pip install moviepy</code>
+        </div>
+        {% endif %}
+        {% if thumbnail_methods_available %}
+        <div style="color: #4CAF50; font-size: 14px; margin-top: 10px;">
+            🎯 Auto-thumbnail generation is fully operational!
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Notifications Section -->
+    <div class="notifications-section" style="margin-bottom: 30px;">
+        <!-- Pending IP Requests Notification -->
+        {% if pending_requests > 0 %}
+        <div class="alert" style="background-color: #ff9800; border: 1px solid #f57c00; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between;">
+            <div>
+                <strong>📋 Pending IP Requests:</strong> {{ pending_requests }} user{{ 's' if pending_requests != 1 else '' }} waiting for access approval.
+            </div>
+            <a href="{{ url_for('ip_requests') }}" class="btn" style="background-color: #fff; color: #f57c00; margin-left: 20px; padding: 8px 16px;">
+                Review Requests
+            </a>
+        </div>
+        {% endif %}
+        
+        <!-- Pending Movie Requests Notification -->
+        {% if pending_movie_requests > 0 %}
+        <div class="alert" style="background-color: #4CAF50; border: 1px solid #388e3c; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between;">
+            <div>
+                <strong>🎬 Pending Movie Requests:</strong> {{ pending_movie_requests }} content request{{ 's' if pending_movie_requests != 1 else '' }} waiting for review.
+            </div>
+            <a href="{{ url_for('admin_movie_requests') }}" class="btn" style="background-color: #fff; color: #388e3c; margin-left: 20px; padding: 8px 16px;">
+                Review Requests
+            </a>
+        </div>
+        {% endif %}
+        
+        {% if pending_requests == 0 and pending_movie_requests == 0 %}
+        <div class="alert" style="background-color: #4CAF5020; border: 1px solid #4CAF50; margin-bottom: 15px; text-align: center;">
+            <span style="color: #4CAF50;"><strong>✓ All caught up!</strong> No pending requests at the moment.</span>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="admin-controls" style="margin-bottom: 30px;">
+        <a href="{{ url_for('upload_movie') }}" class="btn">📤 Upload Content</a>
+        <a href="{{ url_for('admin_movie_requests') }}" class="btn" style="margin-left: 10px; background-color: #4CAF50;">
+            🎬 Movie Requests
+            {% if pending_movie_requests > 0 %}
+            <span style="background-color: #e50914; color: white; border-radius: 50%; padding: 2px 6px; font-size: 12px; margin-left: 5px;">{{ pending_movie_requests }}</span>
+            {% endif %}
+        </a>
+        <a href="{{ url_for('admin_users') }}" class="btn" style="margin-left: 10px; background-color: #2196F3;">👥 Manage Users</a>
+        <a href="{{ url_for('ip_whitelist') }}" class="btn btn-secondary" style="margin-left: 10px;">IP Whitelist</a>
+        <a href="{{ url_for('ip_requests') }}" class="btn btn-secondary" style="margin-left: 10px;">
+            IP Requests
+            {% if pending_requests > 0 %}
+            <span style="background-color: #e50914; color: white; border-radius: 50%; padding: 2px 6px; font-size: 12px; margin-left: 5px;">{{ pending_requests }}</span>
+            {% endif %}
+        </a>
+        <a href="{{ url_for('admin_logs') }}" class="btn btn-secondary" style="margin-left: 10px;">View Access Logs</a>
+    </div>
+
+    <!-- Content Summary Cards -->
+    <div class="content-summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; margin-bottom: 40px;">
+        <div class="summary-card" style="background-color: #333; padding: 20px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 32px; color: #e50914; margin-bottom: 10px;">🎬</div>
+            <div style="font-size: 24px; font-weight: bold; color: white;">
+                {{ movies|selectattr('10', 'equalto', 0)|list|length + movies|selectattr('10', 'none')|list|length }}
+            </div>
+            <div style="color: #ccc;">Movies</div>
+        </div>
+        <div class="summary-card" style="background-color: #333; padding: 20px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 32px; color: #4CAF50; margin-bottom: 10px;">📺</div>
+            <div style="font-size: 24px; font-weight: bold; color: white;">{{ series_summary|length }}</div>
+            <div style="color: #ccc;">TV Series</div>
+        </div>
+        <div class="summary-card" style="background-color: #333; padding: 20px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 32px; color: #2196F3; margin-bottom: 10px;">🎭</div>
+            <div style="font-size: 24px; font-weight: bold; color: white;">
+                {{ movies|selectattr('10', 'equalto', 1)|list|length }}
+            </div>
+            <div style="color: #ccc;">Episodes</div>
+        </div>
+        <div class="summary-card" style="background-color: #333; padding: 20px; border-radius: 8px; text-align: center; cursor: pointer;" onclick="window.location.href='{{ url_for('admin_users') }}';">
+            <div style="font-size: 32px; color: #2196F3; margin-bottom: 10px;">👥</div>
+            <div style="font-size: 24px; font-weight: bold; color: white;">
+                <span id="userCount">--</span>
+            </div>
+            <div style="color: #ccc;">Users</div>
+        </div>
+        <div class="summary-card" style="background-color: #333; padding: 20px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 32px; color: #ff9800; margin-bottom: 10px;">📊</div>
+            <div style="font-size: 24px; font-weight: bold; color: white;">{{ movies|length }}</div>
+            <div style="color: #ccc;">Total Items</div>
+        </div>
+        <!-- New card for movie requests -->
+        <div class="summary-card" style="background-color: #333; padding: 20px; border-radius: 8px; text-align: center; cursor: pointer;" onclick="window.location.href='{{ url_for('admin_movie_requests') }}';">
+            <div style="font-size: 32px; color: #9C27B0; margin-bottom: 10px;">📝</div>
+            <div style="font-size: 24px; font-weight: bold; color: white;">{{ pending_movie_requests }}</div>
+            <div style="color: #ccc;">Pending Requests</div>
+        </div>
+    </div>
+
+    <!-- Content Type Tabs -->
+    <div class="content-tabs" style="margin-bottom: 20px;">
+        <button class="tab-button active" onclick="showContent('all')" id="allTab">All Content ({{ movies|length }})</button>
+        <button class="tab-button" onclick="showContent('movies')" id="moviesTab">Movies ({{ movies|selectattr('10', 'equalto', 0)|list|length + movies|selectattr('10', 'none')|list|length }})</button>
+        <button class="tab-button" onclick="showContent('series')" id="seriesTab">TV Series ({{ series_summary|length }})</button>
+        <button class="tab-button" onclick="showContent('episodes')" id="episodesTab">Episodes ({{ movies|selectattr('10', 'equalto', 1)|list|length }})</button>
+    </div>
+
+    <!-- All Content Table -->
+    <div id="allContent" class="content-section">
+        <h2>Manage All Content</h2>
+        {% if movies %}
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Thumbnail</th>
+                    <th>Title</th>
+                    <th>Type</th>
+                    <th>Genre</th>
+                    <th>Release Year</th>
+                    <th>Duration</th>
+                    <th>Uploaded</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for movie in movies %}
+                <tr>
+                    <td>
+                        {% if movie[7] %}
+                        <div style="position: relative;">
+                            <img src="{{ url_for('serve_thumbnail', filename=movie[7]) }}" 
+                                 alt="{{ movie[1] }}" 
+                                 style="width: 80px; height: 60px; object-fit: cover; border-radius: 4px;">
+                            
+                            <!-- Thumbnail type indicator -->
+                            {% if movie|length > 9 and movie[9] %}
+                            <div style="position: absolute; bottom: 2px; right: 2px; background-color: #4CAF50; color: white; font-size: 8px; padding: 1px 3px; border-radius: 2px;">
+                                AUTO
+                            </div>
+                            {% else %}
+                            <div style="position: absolute; bottom: 2px; right: 2px; background-color: #2196F3; color: white; font-size: 8px; padding: 1px 3px; border-radius: 2px;">
+                                CUSTOM
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div style="width: 80px; height: 60px; background-color: #555; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; text-align: center;">
+                            No Thumbnail
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <strong>{{ movie[1] }}</strong>
+                        {% if movie|length > 10 and movie[10] == 1 %}
+                        <br><small style="color: #4CAF50;">📺 {{ movie[11] }} - S{{ movie[12] }}E{{ movie[13] }}</small>
+                        {% if movie|length > 13 and movie[14] %}
+                        <br><small style="color: #ccc;">"{{ movie[14] }}"</small>
+                        {% endif %}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if movie|length > 10 and movie[10] == 1 %}
+                        <span style="background-color: #4CAF50; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">📺 EPISODE</span>
+                        {% else %}
+                        <span style="background-color: #e50914; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">🎬 MOVIE</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ movie[3] or 'N/A' }}</td>
+                    <td>{{ movie[5] or 'N/A' }}</td>
+                    <td>{{ movie[4] or 'N/A' }} min</td>
+                    <td>{{ movie[8][:10] if movie[8] else 'N/A' }}</td>
+                    <td>
+                        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                            <!-- Watch Button -->
+                            <a href="{{ url_for('watch_movie', movie_id=movie[0]) }}" 
+                               class="btn btn-secondary" 
+                               style="padding: 6px 10px; font-size: 11px; white-space: nowrap;">
+                               ▶ Watch
+                            </a>
+                            
+                            <!-- Regenerate Thumbnail Button -->
+                            {% if thumbnail_methods_available %}
+                            <a href="{{ url_for('regenerate_thumbnail', movie_id=movie[0]) }}" 
+                               class="btn" 
+                               onclick="return confirm('Regenerate thumbnail for {{ movie[1] }}?')"
+                               style="padding: 6px 10px; font-size: 11px; background-color: #2196F3; white-space: nowrap;">
+                               🔄 Regen
+                            </a>
+                            {% endif %}
+                            
+                            <!-- Delete Button -->
+                            <a href="{{ url_for('delete_movie', movie_id=movie[0]) }}" 
+                               class="btn" 
+                               onclick="return confirm('Are you sure you want to delete this {{ 'episode' if movie|length > 10 and movie[10] == 1 else 'movie' }}? This action cannot be undone.')"
+                               style="background-color: #d32f2f; padding: 6px 10px; font-size: 11px; white-space: nowrap;">
+                               🗑️ Delete
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="text-align: center; padding: 40px; background-color: #333; border-radius: 8px;">
+            <h3>No content uploaded yet</h3>
+            <p style="color: #ccc; margin: 20px 0;">Start building your personal Netflix by uploading movies and TV series!</p>
+            <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                <a href="{{ url_for('upload_movie') }}" class="btn">📤 Upload Your First Content</a>
+                <a href="{{ url_for('admin_movie_requests') }}" class="btn" style="background-color: #4CAF50;">🎬 Check Requests</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Movies Only Table -->
+    <div id="moviesContent" class="content-section" style="display: none;">
+        <h2>Movies Only</h2>
+        {% set standalone_movies = movies|selectattr('10', 'equalto', 0)|list + movies|selectattr('10', 'none')|list %}
+        {% if standalone_movies %}
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Thumbnail</th>
+                    <th>Title</th>
+                    <th>Genre</th>
+                    <th>Release Year</th>
+                    <th>Duration</th>
+                    <th>Uploaded</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for movie in standalone_movies %}
+                <tr>
+                    <!-- Same structure as all content table but without type column -->
+                    <td>
+                        {% if movie[7] %}
+                        <div style="position: relative;">
+                            <img src="{{ url_for('serve_thumbnail', filename=movie[7]) }}" 
+                                 alt="{{ movie[1] }}" 
+                                 style="width: 80px; height: 60px; object-fit: cover; border-radius: 4px;">
+                        </div>
+                        {% else %}
+                        <div style="width: 80px; height: 60px; background-color: #555; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; text-align: center;">
+                            No Thumbnail
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td><strong>{{ movie[1] }}</strong></td>
+                    <td>{{ movie[3] or 'N/A' }}</td>
+                    <td>{{ movie[5] or 'N/A' }}</td>
+                    <td>{{ movie[4] or 'N/A' }} min</td>
+                    <td>{{ movie[8][:10] if movie[8] else 'N/A' }}</td>
+                    <td>
+                        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                            <a href="{{ url_for('watch_movie', movie_id=movie[0]) }}" 
+                               class="btn btn-secondary" 
+                               style="padding: 6px 10px; font-size: 11px;">▶ Watch</a>
+                            {% if thumbnail_methods_available %}
+                            <a href="{{ url_for('regenerate_thumbnail', movie_id=movie[0]) }}" 
+                               class="btn" 
+                               style="padding: 6px 10px; font-size: 11px; background-color: #2196F3;">🔄 Regen</a>
+                            {% endif %}
+                            <a href="{{ url_for('delete_movie', movie_id=movie[0]) }}" 
+                               class="btn" 
+                               onclick="return confirm('Delete this movie?')"
+                               style="background-color: #d32f2f; padding: 6px 10px; font-size: 11px;">🗑️ Delete</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No standalone movies found.</p>
+        {% endif %}
+    </div>
+
+    <!-- Series Summary Table -->
+    <div id="seriesContent" class="content-section" style="display: none;">
+        <h2>TV Series</h2>
+        {% if series_summary %}
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Series Name</th>
+                    <th>Episodes</th>
+                    <th>Seasons</th>
+                    <th>First Uploaded</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for series in series_summary %}
+                <tr>
+                    <td><strong>📺 {{ series[0] }}</strong></td>
+                    <td>{{ series[1] }} episodes</td>
+                    <td>{{ series[2] }} - {{ series[3] }}</td>
+                    <td>{{ series[4][:10] if series[4] else 'N/A' }}</td>
+                    <td>
+                        <a href="{{ url_for('view_series', series_name=series[0]) }}" 
+                           class="btn btn-secondary" 
+                           style="padding: 6px 10px; font-size: 11px;">👁️ View Episodes</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No TV series found.</p>
+        {% endif %}
+    </div>
+
+    <!-- Episodes Only Table -->
+    <div id="episodesContent" class="content-section" style="display: none;">
+        <h2>All Episodes</h2>
+        {% set episodes = movies|selectattr('10', 'equalto', 1)|list %}
+        {% if episodes %}
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Thumbnail</th>
+                    <th>Episode Info</th>
+                    <th>Series</th>
+                    <th>Duration</th>
+                    <th>Uploaded</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for episode in episodes %}
+                <tr>
+                    <td>
+                        {% if episode[7] %}
+                        <img src="{{ url_for('serve_thumbnail', filename=episode[7]) }}" 
+                             style="width: 80px; height: 60px; object-fit: cover; border-radius: 4px;">
+                        {% else %}
+                        <div style="width: 80px; height: 60px; background-color: #555; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px;">
+                            No Thumbnail
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <strong>S{{ episode[12] }}E{{ episode[13] }}</strong>
+                        <br><small>{{ episode[14] if episode[14] else episode[1] }}</small>
+                    </td>
+                    <td>{{ episode[11] }}</td>
+                    <td>{{ episode[4] or 'N/A' }} min</td>
+                    <td>{{ episode[8][:10] if episode[8] else 'N/A' }}</td>
+                    <td>
+                        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                            <a href="{{ url_for('watch_movie', movie_id=episode[0]) }}" 
+                               class="btn btn-secondary" 
+                               style="padding: 6px 10px; font-size: 11px;">▶ Watch</a>
+                            <a href="{{ url_for('delete_movie', movie_id=episode[0]) }}" 
+                               class="btn" 
+                               onclick="return confirm('Delete this episode?')"
+                               style="background-color: #d32f2f; padding: 6px 10px; font-size: 11px;">🗑️ Delete</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No episodes found.</p>
+        {% endif %}
+    </div>
+
+    <!-- Legend -->
+    <div style="margin-top: 20px; padding: 15px; background-color: #333; border-radius: 8px;">
+        <h4>Legend:</h4>
+        <div style="display: flex; gap: 30px; flex-wrap: wrap; margin-top: 10px;">
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <div style="width: 20px; height: 15px; background-color: #4CAF50; border-radius: 2px; font-size: 8px; display: flex; align-items: center; justify-content: center; color: white;">AUTO</div>
+                <span style="font-size: 12px;">📹 Auto-generated from video frame</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <div style="width: 20px; height: 15px; background-color: #2196F3; border-radius: 2px; font-size: 8px; display: flex; align-items: center; justify-content: center; color: white;">CUSTOM</div>
+                <span style="font-size: 12px;">🖼️ Custom uploaded image</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <span style="background-color: #e50914; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">🎬 MOVIE</span>
+                <span style="font-size: 12px;">Standalone movie</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <span style="background-color: #4CAF50; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">📺 EPISODE</span>
+                <span style="font-size: 12px;">TV series episode</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <span style="background-color: #9C27B0; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">📝 REQUEST</span>
+                <span style="font-size: 12px;">User content request</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <span style="background-color: #2196F3; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">👥 USERS</span>
+                <span style="font-size: 12px;">User management</span>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<style>
+/* Tab Styles */
+.content-tabs {
+    display: flex;
+    border-bottom: 2px solid #444;
+    gap: 5px;
+}
+
+.tab-button {
+    background-color: #222;
+    color: #ccc;
+    border: none;
+    padding: 12px 20px;
+    cursor: pointer;
+    border-radius: 8px 8px 0 0;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    position: relative;
+}
+
+.tab-button:hover {
+    background-color: #333;
+    color: white;
+}
+
+.tab-button.active {
+    background-color: #e50914;
+    color: white;
+}
+
+.tab-button.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: #e50914;
+}
+
+.content-section {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Summary Cards */
+.summary-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+}
+
+.summary-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+}
+
+/* Enhanced notification styles */
+.notifications-section .alert {
+    animation: slideInDown 0.5s ease;
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Enhanced table styles */
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background-color: #222;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.admin-table th,
+.admin-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #444;
+}
+
+.admin-table th {
+    background-color: #333;
+    font-weight: bold;
+    color: #e50914;
+}
+
+.admin-table tr:hover {
+    background-color: #2a2a2a;
+}
+
+/* Movie request summary card special styling */
+.summary-card:nth-child(6) {
+    background: linear-gradient(135deg, #9C27B0, #7B1FA2) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.summary-card:nth-child(6)::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.summary-card:nth-child(6):hover::before {
+    left: 100%;
+}
+
+/* User management card styling */
+.summary-card:nth-child(4) {
+    background: linear-gradient(135deg, #2196F3, #1976D2) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.summary-card:nth-child(4):hover {
+    transform: translateY(-5px) scale(1.02);
+}
+
+/* Pulsing animation for pending items */
+.summary-card:nth-child(6) div:nth-child(2) {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Additional responsive styles for admin table */
+@media (max-width: 768px) {
+    .admin-table img {
+        width: 60px !important;
+        height: 45px !important;
+    }
+    
+    .content-tabs {
+        flex-wrap: wrap;
+    }
+    
+    .tab-button {
+        font-size: 12px;
+        padding: 8px 12px;
+    }
+    
+    .content-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .notifications-section .alert {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+    }
+
+    .notifications-section .alert .btn {
+        margin-left: 0 !important;
+        margin-top: 10px;
+    }
+
+    .admin-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .admin-controls .btn {
+        margin: 0 !important;
+        flex: 1;
+        min-width: 120px;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .content-summary {
+        grid-template-columns: 1fr;
+    }
+    
+    .admin-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .admin-controls .btn {
+        margin: 0 !important;
+        text-align: center;
+    }
+}
+
+/* Hover effects for action buttons */
+.admin-table .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+/* Status indicators animation */
+.thumbnail-status {
+    animation: fadeIn 0.5s ease-in;
+}
+
+/* Enhanced series info styling */
+.admin-table tr td:nth-child(2) small {
+    display: block;
+    margin-top: 2px;
+}
+
+/* Quick action buttons */
+.quick-action-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+    z-index: 100;
+}
+
+.quick-action-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+
+/* User count loading animation */
+#userCount {
+    transition: all 0.3s ease;
+}
+
+#userCount.loading {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+</style>
+
+<script>
+function showContent(type) {
+    // Hide all content sections
+    document.getElementById('allContent').style.display = 'none';
+    document.getElementById('moviesContent').style.display = 'none';
+    document.getElementById('seriesContent').style.display = 'none';
+    document.getElementById('episodesContent').style.display = 'none';
+    
+    // Remove active class from all tabs
+    document.querySelectorAll('.tab-button').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Show selected content and activate tab
+    switch(type) {
+        case 'all':
+            document.getElementById('allContent').style.display = 'block';
+            document.getElementById('allTab').classList.add('active');
+            break;
+        case 'movies':
+            document.getElementById('moviesContent').style.display = 'block';
+            document.getElementById('moviesTab').classList.add('active');
+            break;
+        case 'series':
+            document.getElementById('seriesContent').style.display = 'block';
+            document.getElementById('seriesTab').classList.add('active');
+            break;
+        case 'episodes':
+            document.getElementById('episodesContent').style.display = 'block';
+            document.getElementById('episodesTab').classList.add('active');
+            break;
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if there's a hash in the URL to determine which tab to show
+    const hash = window.location.hash.replace('#', '');
+    if (['movies', 'series', 'episodes'].includes(hash)) {
+        showContent(hash);
+    } else {
+        showContent('all');
+    }
+
+    // Add notification sounds for pending requests
+    const pendingMovieRequests = {{ pending_movie_requests }};
+    const pendingIpRequests = {{ pending_requests }};
+    
+    if (pendingMovieRequests > 0 || pendingIpRequests > 0) {
+        // Store counts to detect new requests
+        const lastMovieCount = localStorage.getItem('lastMovieRequestCount') || '0';
+        const lastIpCount = localStorage.getItem('lastIpRequestCount') || '0';
+        
+        if (parseInt(lastMovieCount) < pendingMovieRequests || parseInt(lastIpCount) < pendingIpRequests) {
+            playNotificationSound();
+        }
+        
+        localStorage.setItem('lastMovieRequestCount', pendingMovieRequests.toString());
+        localStorage.setItem('lastIpRequestCount', pendingIpRequests.toString());
+    }
+
+    // Add quick action button if there are pending movie requests
+    if (pendingMovieRequests > 0) {
+        addQuickActionButton();
+    }
+
+    // Fetch user count dynamically
+    const userCountElement = document.getElementById('userCount');
+    if (userCountElement) {
+        userCountElement.classList.add('loading');
+        fetch('/api/user-count')
+            .then(response => response.json())
+            .then(data => {
+                userCountElement.classList.remove('loading');
+                if (data.error) {
+                    userCountElement.textContent = '!';
+                    userCountElement.title = 'Error loading user count';
+                    userCountElement.style.color = '#f44336';
+                } else {
+                    userCountElement.textContent = data.total;
+                    userCountElement.title = `Total: ${data.total} users (${data.admins} admins, ${data.regular} regular users)`;
+                    userCountElement.style.color = 'white';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching user count:', error);
+                userCountElement.classList.remove('loading');
+                userCountElement.textContent = '!';
+                userCountElement.title = 'Error loading user count';
+                userCountElement.style.color = '#f44336';
+            });
+    }
+});
+
+// Update URL hash when tab changes
+document.querySelectorAll('.tab-button').forEach(tab => {
+    tab.addEventListener('click', function() {
+        const tabType = this.id.replace('Tab', '');
+        if (tabType !== 'all') {
+            window.location.hash = tabType;
+        } else {
+            history.replaceState(null, null, ' ');
+        }
+    });
+});
+
+function playNotificationSound() {
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // Create a pleasant notification tone
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+        oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
+        
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.5);
+    } catch (e) {
+        console.log('Audio notification not available');
+    }
+}
+
+function addQuickActionButton() {
+    const quickBtn = document.createElement('button');
+    quickBtn.className = 'quick-action-btn';
+    quickBtn.innerHTML = '🎬';
+    quickBtn.title = 'Quick access to movie requests';
+    quickBtn.onclick = () => window.location.href = '{{ url_for("admin_movie_requests") }}';
+    
+    document.body.appendChild(quickBtn);
+    
+    // Add pulsing animation for attention
+    quickBtn.style.animation = 'pulse 2s infinite';
+}
+
+// Auto-refresh every 60 seconds if there are pending requests
+const shouldAutoRefresh = {{ (pending_movie_requests + pending_requests) > 0 }};
+
+if (shouldAutoRefresh) {
+    setTimeout(() => {
+        console.log('Auto-refreshing admin panel...');
+        window.location.reload();
+    }, 60000); // 60 seconds
+    
+    // Show countdown
+    const countdown = document.createElement('div');
+    countdown.style.cssText = `
+        position: fixed;
+        bottom: 80px;
+        right: 20px;
+        background-color: rgba(0,0,0,0.7);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-size: 11px;
+        z-index: 99;
+    `;
+    document.body.appendChild(countdown);
+    
+    let timeLeft = 60;
+    const timer = setInterval(() => {
+        timeLeft--;
+        countdown.textContent = `Auto-refresh: ${timeLeft}s`;
+        if (timeLeft <= 0) {
+            clearInterval(timer);
+            countdown.textContent = 'Refreshing...';
+        }
+    }, 1000);
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Alt + M = Movie Requests
+    if (e.altKey && e.key === 'm') {
+        e.preventDefault();
+        window.location.href = '{{ url_for("admin_movie_requests") }}';
+    }
+    
+    // Alt + U = Upload
+    if (e.altKey && e.key === 'u') {
+        e.preventDefault();
+        window.location.href = '{{ url_for("upload_movie") }}';
+    }
+    
+    // Alt + Y = User Management
+    if (e.altKey && e.key === 'y') {
+        e.preventDefault();
+        window.location.href = '{{ url_for("admin_users") }}';
+    }
+    
+    // Alt + I = IP Requests
+    if (e.altKey && e.key === 'i') {
+        e.preventDefault();
+        window.location.href = '{{ url_for("ip_requests") }}';
+    }
+});
+
+// Add keyboard shortcut hints
+const shortcuts = document.createElement('div');
+shortcuts.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background-color: rgba(0,0,0,0.8);
+    color: white;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 98;
+`;
+shortcuts.innerHTML = `
+    <strong>Shortcuts:</strong><br>
+    Alt+M: Movie Requests<br>
+    Alt+U: Upload Content<br>
+    Alt+Y: User Management<br>
+    Alt+I: IP Requests
+`;
+
+document.body.appendChild(shortcuts);
+
+// Show shortcuts on Alt key hold
+document.addEventListener('keydown', function(e) {
+    if (e.altKey) {
+        shortcuts.style.opacity = '1';
+    }
+});
+
+document.addEventListener('keyup', function(e) {
+    if (!e.altKey) {
+        shortcuts.style.opacity = '0';
+    }
+});
+</script>
+{% endblock %}admin-table {
+        font-size: 12px;
+    }
+    
+    .admin-table td {
+        padding: 8px 4px;
+    }
+    
+    .

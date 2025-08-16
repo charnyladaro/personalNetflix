@@ -1,0 +1,454 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>👥 User Management</h1>
+    
+    <div class="admin-controls" style="margin-bottom: 30px;">
+        <a href="{{ url_for('admin') }}" class="btn btn-secondary">Back to Admin Panel</a>
+        <a href="{{ url_for('add_user') }}" class="btn" style="margin-left: 10px;">➕ Add New User</a>
+    </div>
+
+    <!-- User Statistics -->
+    <div class="stats-summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; margin-bottom: 40px;">
+        <div class="stat-card" style="background-color: #2196F3; padding: 20px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 32px; margin-bottom: 10px;">👥</div>
+            <div style="font-size: 24px; font-weight: bold; color: white;">{{ users|length }}</div>
+            <div style="color: white; font-size: 14px;">Total Users</div>
+        </div>
+        <div class="stat-card" style="background-color: #e50914; padding: 20px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 32px; margin-bottom: 10px;">🛡️</div>
+            <div style="font-size: 24px; font-weight: bold; color: white;">
+                {% set admin_count = users|selectattr('2', 'equalto', 1)|list|length %}
+                {{ admin_count }}
+            </div>
+            <div style="color: white; font-size: 14px;">Admins</div>
+        </div>
+        <div class="stat-card" style="background-color: #4CAF50; padding: 20px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 32px; margin-bottom: 10px;">👤</div>
+            <div style="font-size: 24px; font-weight: bold; color: white;">
+                {% set regular_count = users|selectattr('2', 'equalto', 0)|list|length %}
+                {{ regular_count }}
+            </div>
+            <div style="color: white; font-size: 14px;">Regular Users</div>
+        </div>
+        <div class="stat-card" style="background-color: #ff9800; padding: 20px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 32px; margin-bottom: 10px;">📝</div>
+            <div style="font-size: 24px; font-weight: bold; color: white;">
+                {% set total_requests = users|sum(attribute='4') %}
+                {{ total_requests }}
+            </div>
+            <div style="color: white; font-size: 14px;">Total Requests</div>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <h2>All Users ({{ users|length }})</h2>
+    {% if users %}
+    <div class="table-container">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Created</th>
+                    <th>Requests</th>
+                    <th>Admin Actions</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr {% if user[0] == current_user_id %}style="background-color: rgba(229, 9, 20, 0.1); border-left: 4px solid #e50914;"{% endif %}>
+                    <td>
+                        <strong>{{ user[0] }}</strong>
+                        {% if user[0] == current_user_id %}
+                        <span style="color: #e50914; font-size: 12px; margin-left: 5px;">(You)</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            {% if user[2] %}
+                            <span style="color: #e50914; font-size: 18px;">🛡️</span>
+                            {% else %}
+                            <span style="color: #4CAF50; font-size: 18px;">👤</span>
+                            {% endif %}
+                            <strong>{{ user[1] }}</strong>
+                        </div>
+                    </td>
+                    <td>
+                        {% if user[2] %}
+                        <span class="role-badge admin-badge">🛡️ Admin</span>
+                        {% else %}
+                        <span class="role-badge user-badge">👤 User</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ user[3][:10] if user[3] else 'N/A' }}</td>
+                    <td>
+                        {% if user[4] > 0 %}
+                        <span style="color: #4CAF50; font-weight: bold;">{{ user[4] }}</span>
+                        {% else %}
+                        <span style="color: #666;">0</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user[5] > 0 %}
+                        <span style="color: #2196F3; font-weight: bold;">{{ user[5] }}</span>
+                        {% else %}
+                        <span style="color: #666;">0</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <!-- Edit Button -->
+                            <a href="{{ url_for('edit_user', user_id=user[0]) }}" 
+                               class="btn btn-small btn-edit">
+                               ✏️ Edit
+                            </a>
+                            
+                            {% if user[0] != current_user_id %}
+                            <!-- Toggle Admin Button -->
+                            <a href="{{ url_for('toggle_user_admin', user_id=user[0]) }}" 
+                               class="btn btn-small {% if user[2] %}btn-revoke{% else %}btn-grant{% endif %}"
+                               onclick="return confirm('{% if user[2] %}Revoke admin privileges from{% else %}Grant admin privileges to{% endif %} {{ user[1] }}?')">
+                               {% if user[2] %}👤 Revoke Admin{% else %}🛡️ Make Admin{% endif %}
+                            </a>
+                            
+                            <!-- Delete Button -->
+                            <a href="{{ url_for('delete_user', user_id=user[0]) }}" 
+                               class="btn btn-small btn-delete"
+                               onclick="return confirm('Are you sure you want to delete user {{ user[1] }}? This will also delete all their requests and logs. This action cannot be undone.')">
+                               🗑️ Delete
+                            </a>
+                            {% else %}
+                            <span style="color: #666; font-size: 12px; font-style: italic;">Cannot modify own account</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 40px; background-color: #333; border-radius: 8px;">
+        <h3>No users found</h3>
+        <p style="color: #ccc; margin: 20px 0;">There are no users in the system.</p>
+        <a href="{{ url_for('add_user') }}" class="btn">➕ Add First User</a>
+    </div>
+    {% endif %}
+
+    <!-- Legend -->
+    <div style="margin-top: 30px; padding: 20px; background-color: #333; border-radius: 8px;">
+        <h4>Legend:</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span class="role-badge admin-badge">🛡️ Admin</span>
+                <span style="font-size: 14px;">Full system access</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span class="role-badge user-badge">👤 User</span>
+                <span style="font-size: 14px;">Regular user access</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 20px; height: 15px; background-color: rgba(229, 9, 20, 0.1); border-left: 4px solid #e50914; border-radius: 2px;"></div>
+                <span style="font-size: 14px;">Your current account</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #4CAF50; font-weight: bold;">📝</span>
+                <span style="font-size: 14px;">Requests - User content requests</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #2196F3; font-weight: bold;">⚡</span>
+                <span style="font-size: 14px;">Admin Actions - Administrative activities</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .table-container {
+        overflow-x: auto;
+        background-color: #222;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .admin-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+        background-color: #222;
+    }
+
+    .admin-table th,
+    .admin-table td {
+        padding: 15px 12px;
+        text-align: left;
+        border-bottom: 1px solid #444;
+    }
+
+    .admin-table th {
+        background-color: #333;
+        font-weight: bold;
+        color: #e50914;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .admin-table tr:hover {
+        background-color: #2a2a2a;
+    }
+
+    .role-badge {
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+        display: inline-block;
+    }
+
+    .admin-badge {
+        background-color: rgba(229, 9, 20, 0.2);
+        color: #e50914;
+        border: 1px solid #e50914;
+    }
+
+    .user-badge {
+        background-color: rgba(76, 175, 80, 0.2);
+        color: #4CAF50;
+        border: 1px solid #4CAF50;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .btn-small {
+        padding: 6px 12px;
+        font-size: 11px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+    }
+
+    .btn-edit {
+        background-color: #2196F3;
+        color: white;
+    }
+
+    .btn-grant {
+        background-color: #4CAF50;
+        color: white;
+    }
+
+    .btn-revoke {
+        background-color: #ff9800;
+        color: white;
+    }
+
+    .btn-delete {
+        background-color: #f44336;
+        color: white;
+    }
+
+    .btn-small:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.1);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .stat-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        cursor: default;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .admin-table {
+            font-size: 12px;
+        }
+
+        .admin-table th,
+        .admin-table td {
+            padding: 8px 6px;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .btn-small {
+            width: 100%;
+            text-align: center;
+            padding: 8px 6px;
+        }
+
+        .stats-summary {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 480px) {
+        .stats-summary {
+            grid-template-columns: 1fr;
+        }
+
+        .table-container {
+            margin: 0 -20px;
+            border-radius: 0;
+        }
+    }
+
+    /* Animation for current user row */
+    .admin-table tr[style*="rgba(229, 9, 20, 0.1)"] {
+        animation: highlightCurrentUser 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes highlightCurrentUser {
+        from { box-shadow: none; }
+        to { box-shadow: 0 0 10px rgba(229, 9, 20, 0.3); }
+    }
+
+    /* Success animations */
+    .admin-table tbody tr {
+        animation: fadeInUp 0.5s ease;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Button hover effects */
+    .btn-edit:hover { background-color: #1976D2; }
+    .btn-grant:hover { background-color: #388E3C; }
+    .btn-revoke:hover { background-color: #F57C00; }
+    .btn-delete:hover { background-color: #D32F2F; }
+
+    /* Security warning for admin actions */
+    .btn-revoke, .btn-delete {
+        position: relative;
+    }
+
+    .btn-revoke::before, .btn-delete::before {
+        content: '⚠️';
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        font-size: 8px;
+        opacity: 0.7;
+    }
+</style>
+
+<script>
+    // Add confirmation dialogs with more context
+    document.addEventListener('DOMContentLoaded', function() {
+        // Enhanced confirmation for delete actions
+        const deleteButtons = document.querySelectorAll('.btn-delete');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                const username = this.getAttribute('onclick').match(/user (\w+)/)[1];
+                const confirmMessage = `⚠️ DELETE USER: ${username}\n\nThis will permanently delete:\n• User account\n• All their movie requests\n• All their activity logs\n\nThis action CANNOT be undone!\n\nType "DELETE" to confirm:`;
+                
+                e.preventDefault();
+                const userInput = prompt(confirmMessage);
+                
+                if (userInput === 'DELETE') {
+                    window.location.href = this.href;
+                } else if (userInput !== null) {
+                    alert('Deletion cancelled. You must type "DELETE" exactly to confirm.');
+                }
+            });
+        });
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+N = Add new user
+            if (e.ctrlKey && e.key === 'n') {
+                e.preventDefault();
+                window.location.href = '{{ url_for("add_user") }}';
+            }
+        });
+
+        // Add search functionality
+        addUserSearch();
+    });
+
+    function addUserSearch() {
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.placeholder = '🔍 Search users by username...';
+        searchInput.style.cssText = `
+            width: 100%;
+            max-width: 400px;
+            padding: 12px 20px;
+            margin: 0 0 20px 0;
+            background-color: #333;
+            border: 2px solid #555;
+            border-radius: 25px;
+            color: white;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        `;
+        
+        searchInput.addEventListener('focus', function() {
+            this.style.borderColor = '#e50914';
+            this.style.boxShadow = '0 0 0 3px rgba(229, 9, 20, 0.1)';
+        });
+        
+        searchInput.addEventListener('blur', function() {
+            this.style.borderColor = '#555';
+            this.style.boxShadow = 'none';
+        });
+        
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const tableRows = document.querySelectorAll('.admin-table tbody tr');
+            
+            tableRows.forEach(row => {
+                const username = row.querySelector('td:nth-child(2) strong').textContent.toLowerCase();
+                
+                if (username.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+        
+        // Insert search box before the users table
+        const tableHeading = document.querySelector('h2');
+        if (tableHeading) {
+            tableHeading.parentNode.insertBefore(searchInput, tableHeading.nextSibling);
+        }
+    }
+
+    // Auto-refresh every 60 seconds for admin activity
+    setTimeout(() => {
+        console.log('Auto-refreshing user management page...');
+        window.location.reload();
+    }, 60000);
+</script>
+{% endblock %}

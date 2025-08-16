@@ -1,0 +1,41 @@
+<!-- templates/watch.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ movie[1] }} - Personal Netflix</title>
+</head>
+<body>
+    {% extends "base.html" %}
+
+    {% block content %}
+    <div class="container">
+        <div class="video-player">
+            <video controls width="100%">
+                <source src="{{ url_for('serve_video', filename=movie[6]) }}" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            
+            <div class="video-info">
+                <h1 class="video-title">{{ movie[1] }}</h1>
+                <div class="video-description">
+                    {% if movie[2] %}
+                    <p>{{ movie[2] }}</p>
+                    {% endif %}
+                    <p><strong>Genre:</strong> {{ movie[3] or 'Unknown' }}</p>
+                    {% if movie[4] %}
+                    <p><strong>Duration:</strong> {{ movie[4] }} minutes</p>
+                    {% endif %}
+                    {% if movie[5] %}
+                    <p><strong>Release Year:</strong> {{ movie[5] }}</p>
+                    {% endif %}
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Home</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endblock %}
+</body>
+</html>

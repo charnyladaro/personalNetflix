@@ -1,0 +1,450 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>📋 My Requests</h1>
+    
+    <div class="request-info" style="background-color: #333; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+        <h3>Request Status Guide</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #ff9800; font-size: 16px;">⏳</span>
+                <span><strong>Pending:</strong> Under review</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #4CAF50; font-size: 16px;">✓</span>
+                <span><strong>Approved:</strong> Will be added soon</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #2196F3; font-size: 16px;">📁</span>
+                <span><strong>Uploaded:</strong> Available to watch!</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #f44336; font-size: 16px;">✗</span>
+                <span><strong>Rejected:</strong> Cannot be added</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="request-controls" style="margin-bottom: 30px; display: flex; gap: 10px; flex-wrap: wrap;">
+        <a href="{{ url_for('request_movie') }}" class="btn">📤 New Request</a>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">🏠 Back to Home</a>
+    </div>
+
+    {% if requests %}
+    <h2>Your Requests ({{ requests|length }})</h2>
+    <div class="requests-container">
+        {% for req in requests %}
+        <div class="request-card" data-status="{{ req[12] }}">
+            <div class="request-header">
+                <div class="request-type-badge">
+                    {% if req[4] == 'series' %}
+                    <span class="badge badge-series">📺 TV SERIES</span>
+                    {% else %}
+                    <span class="badge badge-movie">🎬 MOVIE</span>
+                    {% endif %}
+                </div>
+                <div class="request-status">
+                    {% if req[12] == 'pending' %}
+                    <span class="status-pending">⏳ Pending</span>
+                    {% elif req[12] == 'approved' %}
+                    <span class="status-approved">✓ Approved</span>
+                    {% elif req[12] == 'uploaded' %}
+                    <span class="status-uploaded">📁 Uploaded</span>
+                    {% elif req[12] == 'rejected' %}
+                    <span class="status-rejected">✗ Rejected</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="request-content">
+                <h3 class="request-title">{{ req[2] }}</h3>
+                
+                {% if req[4] == 'series' and req[7] %}
+                <div class="series-info">
+                    <strong>Series:</strong> {{ req[7] }}
+                    {% if req[8] or req[9] %}
+                    <br><strong>Specific:</strong> 
+                    {% if req[8] %}Season {{ req[8] }}{% endif %}
+                    {% if req[9] %}Episode {{ req[9] }}{% endif %}
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                {% if req[3] %}
+                <p class="request-description">{{ req[3] }}</p>
+                {% endif %}
+                
+                <div class="request-details">
+                    {% if req[5] %}
+                    <span class="detail-item"><strong>Genre:</strong> {{ req[5] }}</span>
+                    {% endif %}
+                    {% if req[6] %}
+                    <span class="detail-item"><strong>Year:</strong> {{ req[6] }}</span>
+                    {% endif %}
+                </div>
+                
+                {% if req[10] %}
+                <div class="imdb-link">
+                    <a href="{{ req[10] }}" target="_blank" class="btn btn-small">🎭 View on IMDb</a>
+                </div>
+                {% endif %}
+                
+                {% if req[11] %}
+                <div class="additional-info">
+                    <strong>Additional Info:</strong> {{ req[11] }}
+                </div>
+                {% endif %}
+                
+                {% if req[13] %}
+                <div class="admin-notes">
+                    <strong>Admin Notes:</strong> {{ req[13] }}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="request-footer">
+                <div class="request-date">
+                    <strong>Requested:</strong> {{ req[14][:16] if req[14] else 'N/A' }}
+                </div>
+                {% if req[15] %}
+                <div class="processed-date">
+                    <strong>Processed:</strong> {{ req[15][:16] }}
+                    {% if req[17] %}by {{ req[17] }}{% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 40px; background-color: #333; border-radius: 8px;">
+        <h3>No requests yet</h3>
+        <p style="color: #ccc; margin: 20px 0;">You haven't made any movie or series requests yet.</p>
+        <a href="{{ url_for('request_movie') }}" class="btn">📤 Make Your First Request</a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .requests-container {
+        display: grid;
+        gap: 20px;
+        margin-top: 20px;
+    }
+
+    .request-card {
+        background-color: #222;
+        border-radius: 12px;
+        padding: 20px;
+        border-left: 4px solid #555;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .request-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.02) 100%);
+        pointer-events: none;
+    }
+
+    .request-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    }
+
+    .request-card[data-status="pending"] {
+        border-left-color: #ff9800;
+        background-color: rgba(255, 152, 0, 0.05);
+    }
+
+    .request-card[data-status="approved"] {
+        border-left-color: #4CAF50;
+        background-color: rgba(76, 175, 80, 0.05);
+    }
+
+    .request-card[data-status="uploaded"] {
+        border-left-color: #2196F3;
+        background-color: rgba(33, 150, 243, 0.05);
+    }
+
+    .request-card[data-status="rejected"] {
+        border-left-color: #f44336;
+        background-color: rgba(244, 67, 54, 0.05);
+    }
+
+    .request-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: bold;
+        letter-spacing: 0.5px;
+    }
+
+    .badge-movie {
+        background-color: #e50914;
+        color: white;
+    }
+
+    .badge-series {
+        background-color: #4CAF50;
+        color: white;
+    }
+
+    .request-status span {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-weight: bold;
+        font-size: 12px;
+    }
+
+    .status-pending {
+        background-color: rgba(255, 152, 0, 0.2);
+        color: #ff9800;
+        border: 1px solid #ff9800;
+    }
+
+    .status-approved {
+        background-color: rgba(76, 175, 80, 0.2);
+        color: #4CAF50;
+        border: 1px solid #4CAF50;
+    }
+
+    .status-uploaded {
+        background-color: rgba(33, 150, 243, 0.2);
+        color: #2196F3;
+        border: 1px solid #2196F3;
+    }
+
+    .status-rejected {
+        background-color: rgba(244, 67, 54, 0.2);
+        color: #f44336;
+        border: 1px solid #f44336;
+    }
+
+    .request-title {
+        color: white;
+        margin-bottom: 10px;
+        font-size: 20px;
+    }
+
+    .series-info {
+        background-color: rgba(76, 175, 80, 0.1);
+        padding: 10px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+        border: 1px solid rgba(76, 175, 80, 0.3);
+    }
+
+    .request-description {
+        color: #ccc;
+        line-height: 1.6;
+        margin-bottom: 15px;
+    }
+
+    .request-details {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+    }
+
+    .detail-item {
+        color: #aaa;
+        font-size: 14px;
+    }
+
+    .imdb-link {
+        margin-bottom: 15px;
+    }
+
+    .btn-small {
+        padding: 6px 12px;
+        font-size: 12px;
+        background-color: #f5c518;
+        color: #000;
+        text-decoration: none;
+        border-radius: 4px;
+        display: inline-block;
+        transition: all 0.3s ease;
+    }
+
+    .btn-small:hover {
+        background-color: #e6b800;
+        transform: translateY(-1px);
+    }
+
+    .additional-info {
+        background-color: rgba(255, 255, 255, 0.05);
+        padding: 10px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+        color: #ddd;
+        font-size: 14px;
+    }
+
+    .admin-notes {
+        background-color: rgba(33, 150, 243, 0.1);
+        padding: 10px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+        border: 1px solid rgba(33, 150, 243, 0.3);
+        color: #ddd;
+        font-size: 14px;
+    }
+
+    .request-footer {
+        border-top: 1px solid #444;
+        padding-top: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: #888;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .request-date, .processed-date {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .request-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .request-details {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .request-footer {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .request-controls {
+            flex-direction: column;
+        }
+    }
+
+    /* Animation for new requests */
+    .request-card {
+        animation: fadeInUp 0.5s ease;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Status indicator animations */
+    .status-pending {
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.7; }
+        100% { opacity: 1; }
+    }
+
+    .status-uploaded {
+        animation: glow 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes glow {
+        from { box-shadow: 0 0 5px rgba(33, 150, 243, 0.5); }
+        to { box-shadow: 0 0 15px rgba(33, 150, 243, 0.8); }
+    }
+</style>
+
+<script>
+    // Add some interactivity
+    document.addEventListener('DOMContentLoaded', function() {
+        // Highlight uploaded requests
+        const uploadedCards = document.querySelectorAll('.request-card[data-status="uploaded"]');
+        uploadedCards.forEach(card => {
+            const title = card.querySelector('.request-title');
+            if (title) {
+                title.style.cursor = 'pointer';
+                title.title = 'This content is now available to watch!';
+                
+                title.addEventListener('click', function() {
+                    // You could add functionality here to redirect to the actual content
+                    // if you want to implement content linking
+                    alert('This content is now available in the main library!');
+                });
+            }
+        });
+
+        // Add copy functionality for titles (for easy searching)
+        const requestTitles = document.querySelectorAll('.request-title');
+        requestTitles.forEach(title => {
+            title.addEventListener('dblclick', function() {
+                navigator.clipboard.writeText(this.textContent).then(() => {
+                    // Show a temporary tooltip
+                    const tooltip = document.createElement('div');
+                    tooltip.textContent = 'Title copied!';
+                    tooltip.style.cssText = `
+                        position: absolute;
+                        background: #4CAF50;
+                        color: white;
+                        padding: 5px 10px;
+                        border-radius: 4px;
+                        font-size: 12px;
+                        z-index: 1000;
+                        pointer-events: none;
+                    `;
+                    
+                    this.style.position = 'relative';
+                    this.appendChild(tooltip);
+                    
+                    setTimeout(() => {
+                        tooltip.remove();
+                    }, 2000);
+                }).catch(() => {
+                    console.log('Could not copy title');
+                });
+            });
+        });
+        
+        // Add hover effect for request cards
+        const requestCards = document.querySelectorAll('.request-card');
+        requestCards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-5px) scale(1.01)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+    });
+</script>
+{% endblock %}

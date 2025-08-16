@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div style="text-align: center; margin-top: 100px;">
+        <div style="background-color: #d32f2f; padding: 40px; border-radius: 12px; max-width: 600px; margin: 0 auto; box-shadow: 0 4px 20px rgba(211, 47, 47, 0.3);">
+            <h1 style="color: white; margin-bottom: 20px; font-size: 32px;">🚫 Access Denied</h1>
+            <p style="color: white; font-size: 18px; margin-bottom: 30px;">
+                Your IP address <strong>{{ current_ip }}</strong> is not authorized to access this system.
+            </p>
+            
+            {% if error %}
+            <div style="background-color: #f44336; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                <p style="color: white; margin: 0;">
+                    ⚠️ {{ error }}
+                </p>
+            </div>
+            {% endif %}
+            
+            {% if request_sent %}
+            <div style="background-color: #4CAF50; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <h3 style="color: white; margin-bottom: 10px;">✓ Request Submitted Successfully!</h3>
+                <p style="color: white; margin-bottom: 15px;">
+                    Your access request has been sent to the administrator. You will be able to access the system once your IP is approved and added to the whitelist.
+                </p>
+                <p style="color: white; margin: 0; font-size: 14px;">
+                    💡 <strong>Tip:</strong> Once approved, refresh this page or click the button below to access the system.
+                </p>
+            </div>
+            <button onclick="window.location.reload()" class="btn" style="background-color: #4CAF50; padding: 12px 30px; font-size: 16px; border: none; border-radius: 6px; color: white; cursor: pointer; margin-right: 10px;">
+                🔄 Check Access Status
+            </button>
+            <a href="{{ url_for('request_ip_access') }}" class="btn" style="background-color: #2196F3; padding: 12px 30px; font-size: 16px; text-decoration: none; border-radius: 6px; color: white;">
+                📋 View Request Status
+            </a>
+            {% elif has_pending_request %}
+            <div style="background-color: #ff9800; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <h3 style="color: white; margin-bottom: 10px;">⏳ Request Pending</h3>
+                <p style="color: white; margin-bottom: 15px;">
+                    You already have a pending access request for this IP address. Please wait for administrator approval.
+                </p>
+                <p style="color: white; margin: 0; font-size: 14px;">
+                    💡 <strong>Tip:</strong> Once approved, refresh this page or click the button below to access the system.
+                </p>
+            </div>
+            <button onclick="window.location.reload()" class="btn" style="background-color: #4CAF50; padding: 12px 30px; font-size: 16px; border: none; border-radius: 6px; color: white; cursor: pointer; margin-bottom: 10px;">
+                🔄 Check Access Status
+            </button>
+            {% else %}
+            <div style="background-color: rgba(255,255,255,0.1); padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                <p style="color: white; margin-bottom: 20px;">
+                    If you need access to this system, you can request approval from the administrator.
+                </p>
+                
+                <form method="POST" action="{{ url_for('request_ip_access') }}" style="margin-bottom: 20px;">
+                    <input type="hidden" name="ip_address" value="{{ current_ip }}">
+                    <div style="margin-bottom: 15px;">
+                        <input type="text" name="name" placeholder="Your Name" required 
+                               style="width: 100%; padding: 12px; border: none; border-radius: 6px; background-color: white; color: #333; font-size: 16px;">
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <textarea name="reason" placeholder="Reason for access request (optional)" rows="3"
+                                  style="width: 100%; padding: 12px; border: none; border-radius: 6px; background-color: white; color: #333; font-size: 16px; resize: vertical;"></textarea>
+                    </div>
+                    <button type="submit" class="btn" style="background-color: #4CAF50; padding: 12px 30px; font-size: 16px; border: none; border-radius: 6px; color: white; cursor: pointer;">
+                        📤 Request Access
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+            
+            <p style="color: #ffcdd2; font-size: 14px;">
+                {% if request_sent or has_pending_request %}
+                Please check back later or contact the administrator directly if urgent.
+                {% else %}
+                Your request will be sent to the system administrator for approval. 
+                You will be able to access the system once your IP is whitelisted.
+                {% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+body {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    min-height: 100vh;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    transition: all 0.3s ease;
+}
+
+.btn:hover[style*="4CAF50"] {
+    background-color: #45a049 !important;
+}
+
+.btn:hover[style*="2196F3"] {
+    background-color: #1976D2 !important;
+}
+
+input:focus, textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
+    transition: box-shadow 0.3s ease;
+}
+
+/* Auto-refresh indicator */
+.refresh-btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.refresh-btn:hover::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    animation: shine 0.5s;
+}
+
+@keyframes shine {
+    to { left: 100%; }
+}
+</style>
+
+<script>
+// Auto-refresh every 30 seconds if request was sent or is pending
+{% if request_sent or has_pending_request %}
+setTimeout(function() {
+    console.log('Auto-checking access status...');
+    window.location.reload();
+}, 30000); // 30 seconds
+
+// Visual countdown
+let countdownElement = document.createElement('div');
+countdownElement.style.cssText = 'position: fixed; bottom: 20px; right: 20px; background-color: rgba(0,0,0,0.7); color: white; padding: 10px; border-radius: 5px; font-size: 12px;';
+document.body.appendChild(countdownElement);
+
+let timeLeft = 30;
+let countdownTimer = setInterval(function() {
+    timeLeft--;
+    countdownElement.textContent = `Auto-refresh in ${timeLeft}s`;
+    if (timeLeft <= 0) {
+        clearInterval(countdownTimer);
+        countdownElement.textContent = 'Refreshing...';
+    }
+}, 1000);
+{% endif %}
+</script>
+{% endblock %}
