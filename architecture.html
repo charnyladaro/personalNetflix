@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Optimized Local Storage + Cloudflare Architecture</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f9; color: #333; padding: 20px; }
+    h1 { text-align: center; color: #2c3e50; }
+    .diagram { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 40px; }
+    .box {
+      background: #fff;
+      border: 2px solid #2c3e50;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 10px;
+      width: 200px;
+      text-align: center;
+      box-shadow: 2px 4px 8px rgba(0,0,0,0.1);
+      position: relative;
+    }
+    .arrow {
+      width: 2px;
+      background: #2c3e50;
+      position: absolute;
+    }
+    .note {
+      font-size: 14px;
+      color: #555;
+      margin: 8px 0;
+    }
+    .highlight { background: #eafaf1; border-color: #27ae60; }
+  </style>
+</head>
+<body>
+  <h1>Optimized Video Streaming Architecture (Low Cost)</h1>
+  
+  <div class="diagram">
+    <div class="box highlight">
+      <strong>User</strong>
+      <div class="note">Browser requests video</div>
+    </div>
+
+    <div class="box">
+      <strong>Cloudflare CDN</strong>
+      <div class="note">Caches static assets (CSS/JS, thumbnails)<br>Optional caching of videos</div>
+    </div>
+
+    <div class="box">
+      <strong>Nginx Reverse Proxy</strong>
+      <div class="note">- Handles video streaming (206 Partial Content)<br>- Gzip/Brotli compression<br>- Range requests enabled</div>
+    </div>
+
+    <div class="box highlight">
+      <strong>Flask App (Gunicorn)</strong>
+      <div class="note">- Auth & user logic<br>- Generates signed URLs<br>- API for metadata</div>
+    </div>
+
+    <div class="box">
+      <strong>SQLite (or Postgres)</strong>
+      <div class="note">Stores metadata: users, movies, series</div>
+    </div>
+
+    <div class="box">
+      <strong>Local Storage</strong>
+      <div class="note">/uploads/videos/<br>/uploads/thumbnails/</div>
+    </div>
+
+    <div class="box">
+      <strong>Thumbnail Generator</strong>
+      <div class="note">Creates WebP thumbnails<br>Done at upload time</div>
+    </div>
+
+    <div class="box">
+      <strong>Caching Layer</strong>
+      <div class="note">Flask-Caching + Redis (optional)<br>Speeds up frequent queries</div>
+    </div>
+  </div>
+
+  <h2>Key Optimizations</h2>
+  <ul>
+    <li>✅ Nginx streams videos with <strong>range requests</strong> (fast seek)</li>
+    <li>✅ Thumbnails pre-generated as <strong>WebP</strong></li>
+    <li>✅ Cloudflare caches static files globally</li>
+    <li>✅ Flask only handles <strong>auth + API</strong>, not heavy video traffic</li>
+    <li>✅ Use <strong>Gunicorn</strong> instead of Flask dev server</li>
+    <li>✅ Optional Redis caching for metadata</li>
+  </ul>
+</body>
+</html>

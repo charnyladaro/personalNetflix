@@ -1,0 +1,23 @@
+# Core Flask dependencies
+Flask==2.3.3
+Werkzeug==2.3.7
+
+# Security
+itsdangerous==2.1.2
+
+# Image processing for thumbnails
+Pillow==10.0.1
+
+# Production server
+gunicorn==21.2.0
+
+# HTTP requests (if you add external API calls)
+requests==2.31.0
+
+# Optional: Video processing (uncomment if needed)
+opencv-python==4.8.1.78
+moviepy==1.0.3
+
+# Optional: Caching (uncomment if using Redis)
+Flask-Caching==2.1.0
+redis==5.0.0

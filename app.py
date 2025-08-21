@@ -245,11 +245,11 @@ def auto_generate_thumbnail(video_path, thumbnail_filename):
     return None, False
 
 def get_client_ip():
-    """Get client IP address from various sources"""
+    """Get client IP address from various sources with Docker support"""
     try:
-        # Check for forwarded IP first
+        # Check for forwarded IP first (most common in Docker setups)
         if request.headers.get('X-Forwarded-For'):
-            # Get the first IP in the list
+            # Get the first IP in the list (original client)
             forwarded_ips = request.headers.get('X-Forwarded-For').split(',')
             client_ip = forwarded_ips[0].strip()
             print(f"Got IP from X-Forwarded-For: {client_ip}")
@@ -264,13 +264,19 @@ def get_client_ip():
         # Fallback to remote address
         client_ip = request.remote_addr
         print(f"Got IP from remote_addr: {client_ip}")
+        
+        # Docker bridge network fix - if we get Docker internal IP, assume localhost
+        if client_ip and (client_ip.startswith('172.') or client_ip.startswith('192.168.') or client_ip == '::1'):
+            print(f"Docker internal IP detected ({client_ip}), treating as localhost")
+            return "127.0.0.1"
+            
         return client_ip
     except Exception as e:
         print(f"Error in get_client_ip: {e}")
         print(f"Error type: {type(e)}")
         import traceback
         traceback.print_exc()
-        # Fallback to a default IP
+        # Fallback to localhost
         return "127.0.0.1"
 
 def get_whitelisted_ips():

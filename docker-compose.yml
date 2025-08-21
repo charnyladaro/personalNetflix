@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # Your Flask application
+  flask-app:
+    build: .
+    container_name: personal-netflix-app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"  # Expose Flask app directly for testing
+    volumes:
+      - ./uploads:/app/uploads  # Mount your video/thumbnail storage
+      - ./netflix.db:/app/netflix.db  # Mount your SQLite database
+    environment:
+      - FLASK_ENV=production
+      - UPLOAD_FOLDER=/app/uploads/videos
+      - THUMBNAIL_FOLDER=/app/uploads/thumbnails
+      # Trust proxy headers for IP detection
+      - TRUSTED_PROXIES=172.16.0.0/12,192.168.0.0/16,10.0.0.0/8
+    networks:
+      - netflix-network
+
+  # Nginx reverse proxy (optional for now)
+  nginx:
+    image: nginx:alpine
+    container_name: personal-netflix-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"  # For HTTPS later
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/sites-available:/etc/nginx/sites-available:ro
+      - ./uploads:/var/www/uploads:ro  # Direct access to videos/thumbnails
+      - ./nginx/ssl:/etc/nginx/ssl:ro  # For SSL certificates (optional)
+    depends_on:
+      - flask-app
+    networks:
+      - netflix-network
+    profiles:
+      - nginx  # Only start nginx when explicitly requested
+
+  # Optional: Redis for caching (can add later)
+  redis:
+    image: redis:alpine
+    container_name: personal-netflix-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    networks:
+      - netflix-network
+    profiles:
+      - redis  # Only start redis when explicitly requested
+
+networks:
+  netflix-network:
+    driver: bridge
+
+volumes:
+  redis-data:
