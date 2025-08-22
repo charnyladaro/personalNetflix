@@ -11,13 +11,28 @@ Pillow==10.0.1
 # Production server
 gunicorn==21.2.0
 
-# HTTP requests (if you add external API calls)
+# HTTP requests
 requests==2.31.0
 
-# Optional: Video processing (uncomment if needed)
+# Video processing (optional)
 opencv-python==4.8.1.78
 moviepy==1.0.3
 
-# Optional: Caching (uncomment if using Redis)
+# Caching (optional)
 Flask-Caching==2.1.0
 redis==5.0.0
+
+# PostgreSQL support - Choose ONE of these options:
+
+# Option A: Latest psycopg2-binary (try first)
+psycopg2-binary==2.9.9
+
+# Option B: If Option A fails, comment above and uncomment below
+# psycopg[binary]==3.1.12
+
+# Option C: If both fail, comment above and uncomment below  
+# pg8000==1.30.3
+
+# SQLAlchemy and migrations
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.0.5
